@@ -27,11 +27,12 @@ setup(
     url="https://github.com/inconshreveable/sqltap",
     packages=["sqltap"],
     package_data={"sqltap": ["templates/*.mako"]},
+    python_requires=">=3.10",
     install_requires=[
-        "SQLAlchemy >= 1.4",
-        "Mako >= 0.4.1",
-        "Werkzeug >= 0.9.6",
-        "sqlparse >= 0.1.15"
+        "SQLAlchemy >= 2.0",
+        "Mako >= 1.2",
+        "Werkzeug >= 2.3",
+        "sqlparse >= 0.4.1"
     ],
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -39,6 +40,11 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
+        'Programming Language :: Python :: 3.14',
         'Topic :: Database'
     ]
 )
