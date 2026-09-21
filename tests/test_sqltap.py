@@ -7,12 +7,11 @@ import tempfile
 import uuid
 import warnings
 
-import nose.tools
+import pytest
 import sqlalchemy.event
 import sqlparse
-from sqlalchemy import Column, Integer, String, Unicode, create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy import Column, Integer, String, Unicode, create_engine, text
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 from werkzeug.test import Client
 from werkzeug.wrappers import Response
 
@@ -35,10 +34,10 @@ class MockResults(object):
 
 class TestSQLTap(object):
 
-    def setUp(self):
+    def setup_method(self):
         self.engine = create_engine('sqlite:///:memory:', echo=True)
 
-        Base = declarative_base(bind=self.engine)
+        Base = declarative_base()
 
         class A(Base):
             __tablename__ = "a"
@@ -93,7 +92,7 @@ class TestSQLTap(object):
         """
         engine2 = create_engine('sqlite:///:memory:', echo=True)
 
-        Base = declarative_base(bind=engine2)
+        Base = declarative_base()
 
         class B(Base):
             __tablename__ = "b"
@@ -120,7 +119,7 @@ class TestSQLTap(object):
         """
         engine2 = create_engine('sqlite:///:memory:', echo=True)
 
-        Base = declarative_base(bind=engine2)
+        Base = declarative_base()
 
         class B(Base):
             __tablename__ = "b"
@@ -273,7 +272,7 @@ class TestSQLTap(object):
 
         sess = self.Session()
         sql = 'SELECT * FROM %s' % self.A.__tablename__
-        sess.connection().execute(sql)
+        sess.connection().execute(text(sql))
 
         stats = profiler.collect()
         report = sqltap.report(stats, report_format="html")
@@ -287,7 +286,7 @@ class TestSQLTap(object):
     def test_report_ddl(self):
         """ Ensure that reporting works when DDL were emitted """
         engine2 = create_engine('sqlite:///:memory:', echo=True)
-        Base2 = declarative_base(bind=engine2)
+        Base2 = declarative_base()
 
         class B(Base2):
             __tablename__ = "b"
@@ -359,8 +358,8 @@ class TestSQLTap(object):
         sess.add_all([a1, a2])
         sess.commit()
 
-        a1 = sess.query(self.A).get(a1.id)
-        a2 = sess.query(self.A).get(a2.id)
+        a1 = sess.get(self.A, a1.id)
+        a2 = sess.get(self.A, a2.id)
 
         profiler = sqltap.start(self.engine)
         # this will create queries with the same text, but different param sets
@@ -452,7 +451,7 @@ class TestSQLTap(object):
         sess = self.Session()
         sess.query(self.A).all()
 
-        sess2 = Session()
+        sess2 = Session(bind=self.engine)
         sess2.query(self.A).all()
 
         stats = profiler.collect()
@@ -484,19 +483,19 @@ class TestSQLTap(object):
         assert len(collection) == 2
         profiler.stop()
 
-    @nose.tools.raises(AssertionError)
     def test_collect_fn_execption_on_collect(self):
         def noop():
             pass
         profiler = sqltap.start(self.engine, collect_fn=noop)
-        profiler.collect()
+        with pytest.raises(AssertionError):
+            profiler.collect()
         profiler.stop()
 
     def test_report_escaped(self):
         """ Test that string escaped correctly. """
         engine2 = create_engine('sqlite:///:memory:', echo=True)
 
-        Base = declarative_base(bind=engine2)
+        Base = declarative_base()
 
         class B(Base):
             __tablename__ = "b"
@@ -521,8 +520,8 @@ class TestSQLTap(object):
 
 class TestSQLTapMiddleware(TestSQLTap):
 
-    def setUp(self):
-        super(TestSQLTapMiddleware, self).setUp()
+    def setup_method(self):
+        super(TestSQLTapMiddleware, self).setup_method()
         from werkzeug.testapp import test_app
         self.app = sqltap.wsgi.SQLTapMiddleware(app=test_app)
         self.client = Client(self.app, Response)
